@@ -1,14 +1,15 @@
-from bisect import bisect_left
-from collections import defaultdict
 import csv
-from datetime import timedelta
-from io import StringIO
 import json
 import logging
 import statistics
-
+import requests
+from bisect import bisect_left
+from collections import defaultdict
+from datetime import timedelta
+from io import StringIO
+from csv_process import *
+import humanfriendly
 from djaa_list_filter.admin import AjaxAutocompleteListFilterModelAdmin
-
 from django.contrib import admin, messages
 from django.contrib.admin.templatetags.admin_list import _boolean_icon
 from django.contrib.admin.views.main import ChangeList
@@ -31,11 +32,10 @@ from django.utils.translation import ngettext
 from guardian.admin import GuardedModelAdmin
 from guardian.shortcuts import (assign_perm, get_groups_with_perms, get_users_with_perms,
                                 remove_perm)
-import humanfriendly
 
 from .models import ActiveUser, ActiveProject, Batch, Project, TaskAssignment
 from .utils import are_anonymous_tasks_allowed, get_turkle_template_limit
-
+from django.views.decorators.csrf import csrf_exempt
 User = get_user_model()
 
 logger = logging.getLogger(__name__)
@@ -423,7 +423,7 @@ class BatchAdmin(AjaxAutocompleteListFilterModelAdmin):
     }
     list_display = (
         'name', 'project', 'is_active', 'assignments_completed',
-        'stats', 'download_input', 'download_csv',
+        'stats', 'download_input', 'download_csv', 'review_batch_admin'
         )
     list_filter = ('active', 'completed')
     autocomplete_list_filter = ('project', 'created_by',)
@@ -560,6 +560,10 @@ class BatchAdmin(AjaxAutocompleteListFilterModelAdmin):
         download_url = reverse('admin:turkle_download_batch', kwargs={'batch_id': obj.id})
         return format_html('<a href="{}" class="button">CSV results</a>'.format(download_url))
 
+    def review_batch_admin(self, obj):
+        review_url = reverse('admin:turkle_review_batch_admin', kwargs={'batch_id': obj.id})
+        return format_html('<a href="{}" class="button">review results</a>'.format(review_url))
+
     def download_input(self, obj):
         download_url = reverse('admin:turkle_download_batch_input', kwargs={'batch_id': obj.id})
         return format_html('<a href="{}" class="button">CSV input</a>'.format(download_url))
@@ -628,6 +632,8 @@ class BatchAdmin(AjaxAutocompleteListFilterModelAdmin):
                  self.admin_site.admin_view(self.publish_batch), name='turkle_publish_batch'),
             path('<int:batch_id>/download/',
                  self.admin_site.admin_view(self.download_batch), name='turkle_download_batch'),
+            path('<int:batch_id>/review-admin/',
+                 self.admin_site.admin_view(self.review_batch_admin_implement), name='turkle_review_batch_admin'),
             path('<int:batch_id>/input/',
                  self.admin_site.admin_view(self.download_batch_input),
                  name='turkle_download_batch_input'),
@@ -665,6 +671,43 @@ class BatchAdmin(AjaxAutocompleteListFilterModelAdmin):
         response['Content-Disposition'] = 'attachment; filename="{}"'.format(
             batch.csv_results_filename())
         return response
+
+    @csrf_exempt
+    def review_batch_admin_implement(self, request, batch_id):
+        batch = Batch.objects.get(id=batch_id)
+        project_id = batch.project_id
+        headers = request.headers
+        add_batch_url = 'http://localhost:8000/admin/turkle/batch/add/'
+        payload = {'project': project_id,
+                   'name': batch.name + '_review',
+                   'assignments_per_task': batch.assignments_per_task,
+                   'active': 1,
+                   'login_required': 1,
+                   'csrfmiddlewaretoken': request.COOKIES['csrftoken']
+                   }
+        csv_output = StringIO()
+        batch.to_csv(csv_output)
+        csv = 'review_demo_user.csv'
+        csv_data = process_csv(csv_output.getvalue())
+        files = {'csv_file': (csv, csv_data)}
+        headers = dict(headers)
+        headers['X-CSRFToken'] = request.COOKIES['csrftoken']
+        headers['Referer'] = add_batch_url
+        session = requests.Session()
+        session.cookies.set('csrftoken', request.COOKIES['csrftoken'])
+        session.cookies.set('sessionid', request.COOKIES['sessionid'])
+        session.get(add_batch_url)
+        resp = session.post(add_batch_url, data=payload, files=files)
+        if b'correct the error' in resp.content:
+            print("Error: the csv file is invalid. Try uploading using the admin UI.")
+        url = resp.url.replace('review', 'publish')
+        payload = {
+            'csrfmiddlewaretoken': session.cookies.get_dict()['csrftoken'],
+        }
+        resp = session.post(url, data=payload)
+        if resp.status_code != requests.codes.ok:
+            print("Error: uploading the csv failed")
+        return redirect('/admin/turkle/batch/')
 
     def download_batch_input(self, request, batch_id):
         batch = Batch.objects.get(id=batch_id)

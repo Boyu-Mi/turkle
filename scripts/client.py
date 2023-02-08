@@ -83,6 +83,7 @@ class TurkleClient(object):
 
     @exception_handler
     def upload(self, options):
+
         if not self.validate_upload(options):
             return False
 
@@ -99,6 +100,7 @@ class TurkleClient(object):
             return self.review_batch(session, review_url)
 
     def upload_project(self, session, options):
+
         url = self.format_url(self.ADD_PROJECT_URL)
         session.get(url)
         payload = {
@@ -136,6 +138,7 @@ class TurkleClient(object):
             payload['login_required'] = 1
         files = {'csv_file': (options.csv, options.csv_data)}
         session.headers.update({'referer': url})
+        print(url, payload, files)
         resp = session.post(url, data=payload, files=files)
         if resp.status_code != requests.codes.ok:
             print("Error: uploading the csv failed")
@@ -156,7 +159,8 @@ class TurkleClient(object):
         if resp.status_code != requests.codes.ok or not resp.json()['results']:
             return None
         return resp.json()['results'][0]['id']
-
+#GET /admin/autocomplete/?term=Review+Test&app_label=turkle&model_name=batch&field_name=project HTTP/1.1" 200 81
+#GET /admin/autocomplete/?term=Review+Test&app_label=turkle&model_name=batch&field_name=project HTTP/1.1" 302 0
     def review_batch(self, session, url):
         url = url.replace('review', 'publish')
         payload = {

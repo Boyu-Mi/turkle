@@ -3,7 +3,8 @@
 import argparse
 from client import TurkleClient
 import sys
-
+import logging
+logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(
     description="Upload a batch of tasks to Turkle",
@@ -23,7 +24,9 @@ parser.add_argument("csv", help="csv file for batch")
 args = parser.parse_args()
 
 client = TurkleClient(args.server, args.u, args.p)
+
 result = client.upload(args)
+
 if result:
     print("Success")
 else:

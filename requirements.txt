@@ -1,7 +1,10 @@
-beautifulsoup4
+beautifulsoup4~=4.11.1
 Django~=3.2.16
 django-admin-autocomplete-list-filter==1.0.1
 django-guardian==2.4.0
-humanfriendly
+humanfriendly~=10.0
 jsonfield==3.1.0
-requests
+requests~=2.28.2
+
+pandas~=1.5.3
+setuptools~=65.6.3

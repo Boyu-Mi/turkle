@@ -1,28 +1,505 @@
-<!--
-    HTML template for audio transcription.
+<!DOCTYPE html>
 
-    Uses Bootstrap CSS loaded from a public CDN.
+<html lang="en-us" dir="ltr">
+<head>
+<title>Add Batch | Turkle</title>
+<link rel="stylesheet" type="text/css" href="/static/admin/css/base.css">
 
-    Uses the HTML5 audio element. The audio files must be served from another server.
-    The example CSV file points to an mp3 file in turkle's Github repository.
-    Most browsers will support wave or mp3 files.
+  <link rel="stylesheet" type="text/css" href="/static/admin/css/nav_sidebar.css">
+  <script src="/static/admin/js/nav_sidebar.js" defer></script>
 
-    The input CSV file is a single column with the heading of audio_url.
-    The output CSV file contains Input.audio_url and Answer.transcript.
--->
+<link rel="stylesheet" type="text/css" href="/static/admin/css/turkle-admin-theme.css" /><link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css">
 
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
-<div class="container mt-2">
-  <h3>Instructions</h3>
-  <p>Transcribe the audio</p>
-  <p>Ignore "umms", "hmms", "uhs" and other non-textual phrases</p>
+  
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
 
-  <div class="form-group">
-    <audio controls src="${audio_url}">Your browser does not support this task</audio>
-  </div>
+<script src="/admin/jsi18n/"></script>
+<link href="/static/turkle/css/admin-turkle.css" type="text/css" media="all" rel="stylesheet">
+<link href="/static/admin/css/vendor/select2/select2.css" type="text/css" media="screen" rel="stylesheet">
+<link href="/static/admin/css/vendor/select2/select2.min.css" type="text/css" media="screen" rel="stylesheet">
+<link href="/static/admin/css/autocomplete.css" type="text/css" media="screen" rel="stylesheet">
+<link href="/static/djaa_list_filter/admin/css/autocomplete_list_filter.css" type="text/css" media="screen" rel="stylesheet">
+<script src="/static/admin/js/vendor/jquery/jquery.min.js"></script>
+<script src="/static/admin/js/vendor/jquery/jquery.js"></script>
+<script src="/static/admin/js/vendor/select2/select2.full.js"></script>
+<script src="/static/admin/js/vendor/select2/select2.full.min.js"></script>
+<script src="/static/admin/js/vendor/select2/i18n/tr.js"></script>
+<script src="/static/admin/js/jquery.init.js"></script>
+<script src="/static/admin/js/core.js"></script>
+<script src="/static/admin/js/autocomplete.js"></script>
+<script src="/static/admin/js/admin/RelatedObjectLookups.js"></script>
+<script src="/static/djaa_list_filter/admin/js/autocomplete_list_filter.js"></script>
+<script src="/static/admin/js/SelectBox.js"></script>
+<script src="/static/admin/js/actions.js"></script>
+<script src="/static/admin/js/SelectFilter2.js"></script>
+<script src="/static/admin/js/urlify.js"></script>
+<script src="/static/admin/js/prepopulate.js"></script>
+<script src="/static/admin/js/vendor/xregexp/xregexp.min.js"></script>
 
-  <div class="form-group">
-    <input type="text" name="transcript" class="form-control" placeholder="Transcribe the audio here..." />
-  </div>
+
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="/static/admin/css/responsive.css">
+    
+
+<meta name="robots" content="NONE,NOARCHIVE">
+</head>
+
+
+<body class=" app-turkle model-batch change-form"
+  data-admin-utc-offset="-18000">
+
+<!-- Container -->
+<div id="container">
+
+    
+    <!-- Header -->
+    <div id="header">
+        <div id="branding">
+        
+<h1 id="site-name"><a href="/admin/">Administration</a></h1>
+
+        </div>
+        
+        
+        <div id="user-tools">
+            
+                Welcome,
+                <strong>miboyu</strong>.
+            
+            
+                
+                    <a href="/">View site</a> /
+                
+                
+                    
+                    
+                
+                
+                <a href="/admin/password_change/">Change password</a> /
+                
+                <a href="/admin/logout/">Log out</a>
+            
+        </div>
+        
+        
+        
+    </div>
+    <!-- END Header -->
+    
+<div class="breadcrumbs">
+<a href="/admin/">Home</a>
+&rsaquo; <a href="/admin/turkle/">Turkle</a>
+&rsaquo; <a href="/admin/turkle/batch/">Batches</a>
+&rsaquo; Add Batch
 </div>
+
+    
+
+    <div class="main shifted" id="main">
+      
+        
+          
+<button class="sticky toggle-nav-sidebar" id="toggle-nav-sidebar" aria-label="Toggle navigation"></button>
+<nav class="sticky" id="nav-sidebar">
+  
+
+
+  
+    <div class="app-auth module">
+      <table>
+        <caption>
+          <a href="/admin/auth/" class="section" title="Models in the Authentication and Authorization application">Authentication and Authorization</a>
+        </caption>
+        
+          <tr class="model-group">
+            
+              <th scope="row"><a href="/admin/auth/group/">Groups</a></th>
+            
+
+            
+              <td><a href="/admin/auth/group/add/" class="addlink">Add</a></td>
+            
+
+            
+          </tr>
+        
+          <tr class="model-user">
+            
+              <th scope="row"><a href="/admin/auth/user/">Users</a></th>
+            
+
+            
+              <td><a href="/admin/auth/user/add/" class="addlink">Add</a></td>
+            
+
+            
+          </tr>
+        
+      </table>
+    </div>
+  
+    <div class="app-turkle module current-app">
+      <table>
+        <caption>
+          <a href="/admin/turkle/" class="section" title="Models in the Turkle application">Turkle</a>
+        </caption>
+        
+          <tr class="model-activeproject">
+            
+              <th scope="row"><a href="/admin/turkle/activeproject/">Active projects</a></th>
+            
+
+            
+              <td></td>
+            
+
+            
+          </tr>
+        
+          <tr class="model-activeuser">
+            
+              <th scope="row"><a href="/admin/turkle/activeuser/">Active users</a></th>
+            
+
+            
+              <td></td>
+            
+
+            
+          </tr>
+        
+          <tr class="model-batch current-model">
+            
+              <th scope="row"><a href="/admin/turkle/batch/" aria-current="page">Batches</a></th>
+            
+
+            
+              <td><a href="/admin/turkle/batch/add/" class="addlink">Add</a></td>
+            
+
+            
+          </tr>
+        
+          <tr class="model-project">
+            
+              <th scope="row"><a href="/admin/turkle/project/">Projects</a></th>
+            
+
+            
+              <td><a href="/admin/turkle/project/add/" class="addlink">Add</a></td>
+            
+
+            
+          </tr>
+        
+          <tr class="model-taskassignment">
+            
+              <th scope="row"><a href="/admin/turkle/taskassignment/">Task Assignments</a></th>
+            
+
+            
+              <td></td>
+            
+
+            
+          </tr>
+        
+      </table>
+    </div>
+  
+
+
+</nav>
+
+        
+      
+      <div class="content">
+        
+          
+        
+        <!-- Content -->
+        <div id="content" class="colM">
+          
+          <h1>Add Batch</h1>
+          
+          <div id="content-main">
+
+
+
+<form enctype="multipart/form-data" method="post" id="batch_form" novalidate><input type="hidden" name="csrfmiddlewaretoken" value="WNQ6PovX0lsaoWhsxQ3LDFOMYq4T1HTF8qKHyn3pcQwg8aIcD1ChV6mAM7XY472h">
+<div>
+
+
+
+
+
+
+
+  <fieldset class="module aligned ">
+    
+    
+    
+        <div class="form-row field-project">
+            
+            
+                <div>
+                    
+                    
+                        <label class="required" for="id_project">Project:</label>
+                        
+                            <div class="related-widget-wrapper">
+    <select name="project" required id="id_project" class="admin-autocomplete" data-ajax--cache="true" data-ajax--delay="250" data-ajax--type="GET" data-ajax--url="/admin/autocomplete/" data-app-label="turkle" data-model-name="batch" data-field-name="project" data-theme="admin-autocomplete" data-allow-clear="false" data-placeholder="">
+</select>
+    
+        <a class="related-widget-wrapper-link change-related" id="change_id_project"
+            data-href-template="/admin/turkle/project/__fk__/change/?_to_field=id&amp;_popup=1"
+            title="Change selected Project"><img src="/static/admin/img/icon-changelink.svg" alt="Change"></a><a class="related-widget-wrapper-link add-related" id="add_id_project"
+            href="/admin/turkle/project/add/?_to_field=id&amp;_popup=1"
+            title="Add another Project"><img src="/static/admin/img/icon-addlink.svg" alt="Add"></a>
+    
+</div>
+                        
+                    
+                    
+                </div>
+            
+        </div>
+    
+        <div class="form-row field-name">
+            
+            
+                <div>
+                    
+                    
+                        <label class="required" for="id_name">Batch Name:</label>
+                        
+                            <input type="text" name="name" size="60" maxlength="1024" required id="id_name">
+                        
+                    
+                    
+                </div>
+            
+        </div>
+    
+        <div class="form-row field-csv_file">
+            
+            
+                <div>
+                    
+                    
+                        <label class="required" for="id_csv_file">CSV File:</label>
+                        
+                            <label for="id_csv_file" class="button align-center">Choose File</label>
+<label id="id_csv_file_custom_text" class="ml-2"></label>
+<input type="file" name="csv_file" class="hidden" data-parsley-errors-container="#file-upload-error" required id="id_csv_file">
+
+<div id="file-upload-error" class="turkle-file-error"></div>
+                        
+                    
+                    
+                        <div class="help">You can Drag-and-Drop a CSV file onto this window, or use the "Choose File" button to browse for the file</div>
+                    
+                </div>
+            
+        </div>
+    
+</fieldset>
+
+
+  <fieldset class="module aligned ">
+    <h2>Status</h2>
+    
+    
+        <div class="form-row field-active">
+            
+            
+                <div class="checkbox-row">
+                    
+                    
+                        <input type="checkbox" name="active" id="id_active" checked><label class="vCheckboxLabel" for="id_active">Active</label>
+                    
+                    
+                        <div class="help">Workers can only access a Batch if both the Batch itself and the associated Project are Active.</div>
+                    
+                </div>
+            
+        </div>
+    
+</fieldset>
+
+
+  <fieldset class="module aligned ">
+    <h2>Task Assignment Settings</h2>
+    
+    
+        <div class="form-row field-assignments_per_task">
+            
+            
+                <div>
+                    
+                    
+                        <label class="required" for="id_assignments_per_task">Assignments per Task:</label>
+                        
+                            <input type="number" name="assignments_per_task" value="1" class="vIntegerField" required id="id_assignments_per_task">
+                        
+                    
+                    
+                </div>
+            
+        </div>
+    
+        <div class="form-row field-allotted_assignment_time">
+            
+            
+                <div>
+                    
+                    
+                        <label for="id_allotted_assignment_time">Allotted Assignment Time (hours):</label>
+                        
+                            <input type="number" name="allotted_assignment_time" value="24" id="id_allotted_assignment_time">
+                        
+                    
+                    
+                        <div class="help">If a user abandons a Task, this determines how long it takes until their assignment is deleted and someone else can work on the Task.</div>
+                    
+                </div>
+            
+        </div>
+    
+</fieldset>
+
+
+  <fieldset class="module aligned ">
+    <h2>Permissions</h2>
+    
+    
+        <div class="form-row field-login_required">
+            
+            
+                <div class="checkbox-row">
+                    
+                    
+                        <input type="checkbox" name="login_required" id="id_login_required" checked><label class="vCheckboxLabel" for="id_login_required">Login required</label>
+                    
+                    
+                </div>
+            
+        </div>
+    
+        <div class="form-row field-custom_permissions">
+            
+            
+                <div class="checkbox-row">
+                    
+                    
+                        <input type="checkbox" name="custom_permissions" id="id_custom_permissions"><label class="vCheckboxLabel" for="id_custom_permissions">Restrict access to specific Groups and/or Users</label>
+                    
+                    
+                </div>
+            
+        </div>
+    
+        <div class="form-row field-can_work_on_groups">
+            
+            
+                <div>
+                    
+                    
+                        <label for="id_can_work_on_groups">Groups that can work on this Batch:</label>
+                        
+                            <select name="can_work_on_groups" id="id_can_work_on_groups" multiple class="selectfilter" data-field-name="Worker Groups" data-is-stacked="0">
+  <option value="1">Turkle User Admin</option>
+
+</select>
+                        
+                    
+                    
+                </div>
+            
+        </div>
+    
+        <div class="form-row field-can_work_on_users">
+            
+            
+                <div>
+                    
+                    
+                        <label for="id_can_work_on_users">Users that can work on this Batch:</label>
+                        
+                            <select name="can_work_on_users" id="id_can_work_on_users" multiple class="selectfilter" data-field-name="Worker Users" data-is-stacked="0">
+  <option value="2"> (miboyu)</option>
+
+</select>
+                        
+                    
+                    
+                </div>
+            
+        </div>
+    
+</fieldset>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="submit-row">
+  <input type="submit" value="Review Batch" name="_saveasnew" />
+</div>
+
+
+
+
+
+    <script id="django-admin-form-add-constants"
+            src="/static/admin/js/change_form.js"
+            
+                data-model-name="batch"
+            
+            async>
+    </script>
+
+<script type="text/javascript" src="/static/turkle/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="/static/turkle/parsley-2.9.1.min.js"></script>
+<script type="text/javascript" src="/static/admin/js/turkle-file-upload.js"></script>
+<script type="text/javascript" src="/static/admin/js/turkle-admin.js"></script>
+<script>
+$(document).ready(function() {
+  $('#batch_form').parsley();
+});
+</script>
+
+
+
+
+<script id="django-admin-prepopulated-fields-constants"
+        src="/static/admin/js/prepopulate_init.js"
+        data-prepopulated-fields="[]">
+</script>
+
+
+</div>
+</form></div>
+
+          
+          <br class="clear">
+        </div>
+        <!-- END Content -->
+        <div id="footer">Turkle version 2.8.0-dev</div>
+      </div>
+    </div>
+</div>
+<!-- END Container -->
+</body>
+</html>
