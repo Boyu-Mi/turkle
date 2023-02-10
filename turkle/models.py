@@ -7,6 +7,7 @@ import re
 import statistics
 import sys
 
+import pandas as pd
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -27,7 +28,7 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 C_LONG_NUM_BITS = 8 * ctypes.sizeof(ctypes.c_long)
-C_LONG_MAX = 2 ** (C_LONG_NUM_BITS-1) - 1
+C_LONG_MAX = 2 ** (C_LONG_NUM_BITS - 1) - 1
 
 # Increase default field size limit (default 131072 characters).
 # Note that field_size_limit converts its argument to a C long,
@@ -35,8 +36,19 @@ C_LONG_MAX = 2 ** (C_LONG_NUM_BITS-1) - 1
 csv.field_size_limit(min(C_LONG_MAX, sys.maxsize))
 
 
+def process_quote(s: str) -> str:
+    res = s
+    if s.startswith('\'') :
+        res = '\\' + res
+    if s.endswith('\''):
+        res = res[:-1] + '\\\''
+    return res
+
+
+
 class ActiveUserManager(models.Manager):
     """Query users by activity on assignments"""
+
     def get_queryset(self, **kwargs):
         # adds annotations for number of assignments and most recent assignment time
         n_days = int(kwargs.get('n_days', 7))
@@ -46,9 +58,9 @@ class ActiveUserManager(models.Manager):
                    Q(taskassignment__completed=True)). \
             distinct(). \
             annotate(
-                total_assignments=Count('taskassignment',
-                                        filter=(Q(taskassignment__updated_at__gt=time_cutoff) &
-                                                Q(taskassignment__completed=True)))). \
+            total_assignments=Count('taskassignment',
+                                    filter=(Q(taskassignment__updated_at__gt=time_cutoff) &
+                                            Q(taskassignment__completed=True)))). \
             annotate(last_finished_time=Max('taskassignment__updated_at',
                                             filter=Q(taskassignment__completed=True)))
         return active_users
@@ -67,14 +79,17 @@ class ActiveUser(User):
 
     def name(self):
         return f"{self.first_name} {self.last_name}"
+
     name.admin_order_field = 'first_name'
 
     def completed_assignments(self):
         return self.total_assignments
+
     completed_assignments.admin_order_field = 'total_assignments'
 
     def most_recent(self):
         return self.last_finished_time
+
     most_recent.admin_order_field = 'last_finished_time'
 
 
@@ -84,6 +99,7 @@ class TaskAssignmentStatistics(object):
     Assumes that the inheriting class has a finished_task_assignments()
     method that returns a QuerySet of TaskAssignments.
     """
+
     def mean_work_time_in_seconds(self):
         """
         Returns:
@@ -121,6 +137,7 @@ class TaskAssignmentStatistics(object):
 class Task(models.Model):
     """Human Intelligence Task
     """
+
     class Meta:
         verbose_name = "Task"
 
@@ -151,6 +168,7 @@ class Task(models.Model):
 class TaskAssignment(models.Model):
     """Task Assignment
     """
+
     class Meta:
         verbose_name = "Task Assignment"
 
@@ -165,9 +183,9 @@ class TaskAssignment(models.Model):
 
     @classmethod
     def expire_all_abandoned(cls):
-        result = cls.objects.\
-            filter(completed=False).\
-            filter(expires_at__lt=timezone.now()).\
+        result = cls.objects. \
+            filter(completed=False). \
+            filter(expires_at__lt=timezone.now()). \
             delete()
         logger.info('Expired %i task assignments', result[0])
         return result
@@ -176,7 +194,7 @@ class TaskAssignment(models.Model):
         # set expires_at only when assignment is created
         if not self.id:
             self.expires_at = timezone.now() + \
-                timedelta(hours=self.task.batch.allotted_assignment_time)
+                              timedelta(hours=self.task.batch.allotted_assignment_time)
 
         if 'csrfmiddlewaretoken' in self.answers:
             del self.answers['csrfmiddlewaretoken']
@@ -184,7 +202,7 @@ class TaskAssignment(models.Model):
 
         # Mark Task as completed if all Assignments have been completed
         if self.task.taskassignment_set.filter(completed=True).count() >= \
-           self.task.batch.assignments_per_task:
+                self.task.batch.assignments_per_task:
             self.task.completed = True
             self.task.save()
 
@@ -249,7 +267,7 @@ class Batch(TaskAssignmentStatistics, models.Model):
         Returns:
             List of Batch objects this user can access
         """
-        batches = cls.objects.filter(active=True).filter(published=True)\
+        batches = cls.objects.filter(active=True).filter(published=True) \
             .filter(project__active=True)
         if not user.is_authenticated:
             batches = batches.filter(login_required=False)
@@ -310,14 +328,14 @@ class Batch(TaskAssignmentStatistics, models.Model):
             .order_by().values('batch').annotate(count=Count('pk')).values('count'),
             output_field=IntegerField())
 
-        oneway_batch_values = oneway_batch_query\
-            .annotate(available_task_count=Coalesce(task_count_subquery, 0))\
+        oneway_batch_values = oneway_batch_query \
+            .annotate(available_task_count=Coalesce(task_count_subquery, 0)) \
             .values('available_task_count', 'id')
         for obv in oneway_batch_values:
             available_task_counts[obv['id']] = obv['available_task_count']
 
-        multiway_batch_query = batch_query.filter(assignments_per_task__gt=1)\
-                                          .filter(completed=False)
+        multiway_batch_query = batch_query.filter(assignments_per_task__gt=1) \
+            .filter(completed=False)
         if user.is_authenticated:
             # Count number of tasks available for case where Batch.assignments_per_task > 1
             ta_count_subquery = Subquery(
@@ -325,17 +343,17 @@ class Batch(TaskAssignmentStatistics, models.Model):
                 .filter(task=OuterRef('pk'))
                 .order_by().values('task').annotate(count=Count('pk')).values('count'),
                 output_field=IntegerField())
-            unassigned_tasks = Task.objects.filter(completed=False)\
-                                           .annotate(ac=Coalesce(ta_count_subquery, 0))\
-                                           .filter(ac__lt=OuterRef('assignments_per_task'))\
-                                           .exclude(taskassignment__assigned_to=user)
+            unassigned_tasks = Task.objects.filter(completed=False) \
+                .annotate(ac=Coalesce(ta_count_subquery, 0)) \
+                .filter(ac__lt=OuterRef('assignments_per_task')) \
+                .exclude(taskassignment__assigned_to=user)
             task_count_subquery = Subquery(
                 unassigned_tasks
                 .filter(batch=OuterRef('pk'))
                 .order_by().values('batch').annotate(count=Count('pk')).values('count'),
                 output_field=IntegerField())
-            multiway_batch_values = multiway_batch_query\
-                .annotate(available_task_count=Coalesce(task_count_subquery, 0))\
+            multiway_batch_values = multiway_batch_query \
+                .annotate(available_task_count=Coalesce(task_count_subquery, 0)) \
                 .values('available_task_count', 'id')
             for mbv in multiway_batch_values:
                 available_task_counts[mbv['id']] = mbv['available_task_count']
@@ -354,9 +372,9 @@ class Batch(TaskAssignmentStatistics, models.Model):
             QuerySet of all TaskAssignments completed by specified user
             that are part of this Batch
         """
-        return TaskAssignment.objects.\
-            filter(completed=True).\
-            filter(assigned_to_id=user.id).\
+        return TaskAssignment.objects. \
+            filter(completed=True). \
+            filter(assigned_to_id=user.id). \
             filter(task__batch=self)
 
     def available_for(self, user):
@@ -365,8 +383,8 @@ class Batch(TaskAssignmentStatistics, models.Model):
             Boolean indicating if this Batch is available for the user
         """
         if not self.active or \
-           not self.project.active or \
-           (not user.is_authenticated and self.login_required):
+                not self.project.active or \
+                (not user.is_authenticated and self.login_required):
             return False
         elif self.custom_permissions:
             return user.has_perm('can_work_on_batch', self)
@@ -398,7 +416,7 @@ class Batch(TaskAssignmentStatistics, models.Model):
                 hs = hs.exclude(taskassignment__assigned_to_id=user.id)
 
             # Only include Tasks when # of (possibly incomplete) assignments < assignments_per_task
-            hs = hs.annotate(ac=models.Count('taskassignment')).\
+            hs = hs.annotate(ac=models.Count('taskassignment')). \
                 filter(ac__lt=self.assignments_per_task)
         elif self.assignments_per_task == 1:
             # Only returns Tasks that have not been assigned to anyone (including this user)
@@ -476,11 +494,12 @@ class Batch(TaskAssignmentStatistics, models.Model):
             QuerySet of all Task Assignment objects associated with this Batch
             that have been completed.
         """
-        return TaskAssignment.objects.filter(task__batch_id=self.id)\
-                                     .filter(completed=True)
+        return TaskAssignment.objects.filter(task__batch_id=self.id) \
+            .filter(completed=True)
 
     def is_active(self):
         return self.active and self.published
+
     is_active.short_description = 'Active'
     is_active.boolean = True
 
@@ -516,10 +535,12 @@ class Batch(TaskAssignmentStatistics, models.Model):
 
     def total_finished_tasks(self):
         return self.finished_tasks().count()
+
     total_finished_tasks.short_description = 'Total finished Tasks'
 
     def total_finished_task_assignments(self):
         return self.finished_task_assignments().count()
+
     total_finished_task_assignments.short_description = 'Total finished Task Assignments'
 
     def total_task_assignments(self):
@@ -527,6 +548,7 @@ class Batch(TaskAssignmentStatistics, models.Model):
 
     def total_tasks(self):
         return self.task_set.count()
+
     total_tasks.short_description = 'Total Tasks'
 
     def total_users_that_completed_tasks(self):
@@ -549,6 +571,19 @@ class Batch(TaskAssignmentStatistics, models.Model):
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
+
+
+    def to_csv_without_quoting(self, csv_fh, lineterminator='\r\n'):
+        fieldnames, rows = self._results_data(self.task_set.all())
+        res_dict = {}
+        for fieldname in fieldnames:
+            if fieldname == 'Input.isUnderReview':
+                res_dict['isUnderReview'] = ['true' for _ in rows]
+            elif fieldname.startswith('Input') or fieldname.startswith('Answer'):
+                index = fieldname[fieldname.index('.') + 1:]
+                res_dict[index] = [process_quote(row[fieldname]) for row in rows]
+        pd.DataFrame(res_dict).to_csv(csv_fh, index=False, quoting=csv.QUOTE_ALL)
+        return None
 
     def to_input_csv(self, csv_fh, lineterminator='\r\n'):
         """Write (reconstructed) CSV input to file handle for every Task in Batch
@@ -577,8 +612,8 @@ class Batch(TaskAssignmentStatistics, models.Model):
             QuerySet of all Task Assignment objects associated with this Batch
             that have not been completed.
         """
-        return TaskAssignment.objects.filter(task__batch_id=self.id)\
-                                     .filter(completed=False)
+        return TaskAssignment.objects.filter(task__batch_id=self.id) \
+            .filter(completed=False)
 
     def unfinished_tasks(self):
         """
@@ -607,9 +642,9 @@ class Batch(TaskAssignmentStatistics, models.Model):
             QuerySet of all Users who have completed TaskAssignments
             that are part of this Batch
         """
-        return User.objects.\
-            filter(taskassignment__task__batch=self).\
-            filter(taskassignment__completed=True).\
+        return User.objects. \
+            filter(taskassignment__task__batch=self). \
+            filter(taskassignment__completed=True). \
             distinct()
 
     def _parse_csv(self, csv_fh):
@@ -638,8 +673,8 @@ class Batch(TaskAssignmentStatistics, models.Model):
         """
         input_field_set = set()
         answer_field_set = set()
-        task_assignments = TaskAssignment.objects.\
-            filter(task__in=task_queryset).\
+        task_assignments = TaskAssignment.objects. \
+            filter(task__in=task_queryset). \
             prefetch_related(Prefetch('task', queryset=task_queryset))
         for task_assignment in task_assignments:
             input_field_set.update(task_assignment.task.input_csv_fields.keys())
@@ -671,9 +706,9 @@ class Batch(TaskAssignmentStatistics, models.Model):
         """
         rows = []
         time_format = '%a %b %d %H:%M:%S %Z %Y'
-        task_assignments = TaskAssignment.objects.\
-            filter(task__in=task_queryset).\
-            filter(completed=True).\
+        task_assignments = TaskAssignment.objects. \
+            filter(task__in=task_queryset). \
+            filter(completed=True). \
             prefetch_related(Prefetch('task', queryset=task_queryset))
         for task_assignment in task_assignments:
             task = task_assignment.task
@@ -775,9 +810,9 @@ class Project(TaskAssignmentStatistics, models.Model):
             QuerySet of all TaskAssignments completed by specified user
             that are part of this Project
         """
-        return TaskAssignment.objects.\
-            filter(completed=True).\
-            filter(assigned_to_id=user.id).\
+        return TaskAssignment.objects. \
+            filter(completed=True). \
+            filter(assigned_to_id=user.id). \
             filter(task__batch__project=self)
 
     def available_for(self, user):
@@ -826,8 +861,8 @@ class Project(TaskAssignmentStatistics, models.Model):
             QuerySet of all Task Assignment objects associated with this Project
             that have been completed.
         """
-        return TaskAssignment.objects.filter(task__batch__project_id=self.id)\
-                                     .filter(completed=True)
+        return TaskAssignment.objects.filter(task__batch__project_id=self.id) \
+            .filter(completed=True)
 
     def process_template(self):
         soup = BeautifulSoup(self.html_template, 'html.parser')
@@ -860,9 +895,9 @@ class Project(TaskAssignmentStatistics, models.Model):
             QuerySet of all Users who have completed TaskAssignments
             that are part of this Project
         """
-        return User.objects.\
-            filter(taskassignment__task__batch__project=self).\
-            filter(taskassignment__completed=True).\
+        return User.objects. \
+            filter(taskassignment__task__batch__project=self). \
+            filter(taskassignment__completed=True). \
             distinct()
 
     def __str__(self):
@@ -871,20 +906,21 @@ class Project(TaskAssignmentStatistics, models.Model):
 
 class ActiveProjectManager(models.Manager):
     """Query projects by activity on assignments"""
+
     def get_queryset(self, **kwargs):
         n_days = int(kwargs.get('n_days', 7))
         time_cutoff = timezone.now() - timedelta(days=n_days)
-        return super().get_queryset().\
+        return super().get_queryset(). \
             filter(Q(batch__task__taskassignment__updated_at__gt=time_cutoff) &
-                   Q(batch__task__taskassignment__completed=True)).\
-            distinct().\
+                   Q(batch__task__taskassignment__completed=True)). \
+            distinct(). \
             annotate(assignments=Count(
-                'batch__task__taskassignment',
-                filter=(Q(batch__task__taskassignment__updated_at__gt=time_cutoff) &
-                        Q(batch__task__taskassignment__completed=True)))).\
+            'batch__task__taskassignment',
+            filter=(Q(batch__task__taskassignment__updated_at__gt=time_cutoff) &
+                    Q(batch__task__taskassignment__completed=True)))). \
             annotate(last_finished_time=Max(
-                'batch__task__taskassignment__updated_at',
-                filter=Q(batch__task__taskassignment__completed=True)))
+            'batch__task__taskassignment__updated_at',
+            filter=Q(batch__task__taskassignment__completed=True)))
 
 
 class ActiveProject(Project):
@@ -897,8 +933,10 @@ class ActiveProject(Project):
 
     def completed_assignments(self):
         return self.assignments
+
     completed_assignments.admin_order_field = 'assignments'
 
     def most_recent(self):
         return self.last_finished_time
+
     most_recent.admin_order_field = 'last_finished_time'

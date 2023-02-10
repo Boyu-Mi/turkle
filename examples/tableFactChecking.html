@@ -1,0 +1,241 @@
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/parsley.js/2.8.1/parsley.js"></script>
+<script>
+$(document).ready(function() {
+  $('#mturk_form').parsley();
+});
+</script>
+<script>
+  const renderTable = (data) => {
+    data = data.trim();
+    var allRows = data.split(/\r?\n|\r/);
+    allRows = allRows.slice(0, -1);
+    var table = '<table cellspacing="0" onselectstart="return false;">';
+    for (var singleRow = 0; singleRow < allRows.length; singleRow++) {
+      if (singleRow === 0) {
+        table += '<thead>';
+        table += '<tr>';
+      } else {
+        table += '<tr>';
+      }
+      var rowCells = allRows[singleRow].split('#');
+      for (var rowCell = 0; rowCell < rowCells.length; rowCell++) {
+        if (singleRow === 0) {
+          table += '<th>';
+          table += rowCells[rowCell];
+          table += '</th>';
+        } else {
+          table += '<td>';
+          table += rowCells[rowCell];
+          table += '</td>';
+        }
+      }
+      if (singleRow === 0) {
+        table += '</tr>';
+        table += '</thead>';
+        table += '<tbody id="tb" class="tb">';
+      } else {
+        table += '</tr>';
+      }
+    } 
+    table += '</tbody>';
+    table += '</table>';
+    return table;
+} 
+</script>
+<div>
+  <h1>${title}</h1>
+  <div id="table"></div>
+  <p>Statement:</p>
+  <input name="statement" type="text" id="stat" required>
+  <input
+        type="radio"
+        id="contactChoice1"
+        name="contact"
+        value="True"
+        checked />
+  <label for="contactChoice1">True</label>
+
+  <input type="radio" id="contactChoice2" name="contact" value="False" />
+  <label for="contactChoice2">False</label>
+
+  <input type="radio" id="contactChoice3" name="contact" value="Unknown" />
+  <label for="contactChoice3">Unknown</label>
+
+  <p>Selected areas:</p>
+  <input name="area" id="selected" />
+  <div id="review_input"></div>
+</div>
+<script type="text/javascript">
+  const successFunction = (data) => {
+    document.getElementById("table").innerHTML = renderTable(data);
+    var mouse_begin={x:0,y:0};  
+    var mouse_end={x:0,y:0};  
+    $(function(){  
+        init();  
+        $("body").mousedown(function(e){  
+            if (e.target == document.getElementById("submitButton") || 
+                e.target == document.getElementById("stat") ||
+                e.target == document.getElementById("contactChoice1") ||
+                e.target == document.getElementById("contactChoice2") ||
+                e.target == document.getElementById("contactChoice3") ||
+                e.target == document.getElementById("review")) {
+            } else {
+                document.getElementById("selected").value = "";
+                $(".tb td").removeClass('td_bg');
+            }
+            
+        })  
+    })  
+      
+    function add_bg(x, y) {
+      $($($("#table").find("tr")[x + 1]).find("td")[y]).addClass("td_bg");
+    }
+
+    function parse_areas(s) {
+      var areas = s.split(';');
+      for (let area of areas) {
+        console.log(area);
+        var x_range = area.split('.')[0];
+        var y_range = area.split('.')[1];
+        console.log(x_range, y_range);
+        var x_min = parseInt(x_range.split(':')[0]);
+        var x_max = parseInt(x_range.split(':')[1]);
+        var y_min = parseInt(y_range.split(':')[0]);
+        var y_max = parseInt(y_range.split(':')[1]);
+        for (var i = x_min; i <= x_max; i++) {
+          for (var j = y_min; j <= y_max; j++) {
+            add_bg(i, j);
+          }
+        }
+      }
+    }
+
+    function init(){  
+      if (${isUnderReview}) {
+        var input = document.getElementById('selected');
+        input.value = '${area}';
+        parse_areas(input.value);
+        console.log('${contact}' === 'True', '${contact}' === 'False', '${contact}' === 'Unknown');
+        document.getElementById("stat").value = '${statement}';
+        if ('${contact}' === 'True') {
+          document.getElementById('contactChoice1').checked = true;
+        }
+        if ('${contact}' === 'False') {
+          document.getElementById('contactChoice2').checked = true;
+        }
+        if ('${contact}' === 'Unknown') {
+          document.getElementById('contactChoice3').checked = true;
+        }
+        
+        document.getElementById("review_input").innerHTML = '<p> Review input</p><input name="review" id="review"/>';
+      }
+        mouseDown();  
+        mouseUp();  
+    }  
+      
+    function mouseDown(){  
+      $(".tb td").mousedown(function(e){  
+          e.stopPropagation();
+          mouse_begin={
+            x:$(this).parent().parent().find("tr").index($(this).parent()[0]), 
+            y:$(this).parent().find("td").index($(this)[0])
+          };      
+          if (e.shiftKey == 1) {
+            $(this).addClass('td_bg');  
+            mouseMove();   
+            var areas = document.getElementById("selected");
+            if (areas.value !== "") {
+              areas.value += ";" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
+            } else {
+              areas.value = "" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
+            }
+          } else {
+            $(".tb td").removeClass('td_bg');
+            $(this).addClass('td_bg');  
+            mouseMove();   
+            var areas = document.getElementById("selected");
+            areas.value = "" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
+          }
+        });  
+  }
+      
+  function mouseMove(){  
+      $(".tb td").mouseover(function(e){  
+          if (e.shiftKey == 1) {
+            mouse_end={
+              x:$(this).parent().parent().find("tr").index($(this).parent()[0]), 
+              y:$(this).parent().find("td").index($(this)[0])    					
+            };  
+            var maxX = mouse_begin.x<mouse_end.x?mouse_end.x:mouse_begin.x;   
+            var minX = mouse_begin.x<mouse_end.x?mouse_begin.x:mouse_end.x;   
+            var maxY = mouse_begin.y<mouse_end.y?mouse_end.y:mouse_begin.y;   
+            var minY = mouse_begin.y<mouse_end.y?mouse_begin.y:mouse_end.y;   
+            for(var i=minX;i<=maxX;i++){  
+                for(var j=minY;j<=maxY;j++){  
+                    $(".tb tr:eq("+i+") td:eq("+j+")").addClass('td_bg');  
+                }  
+            }
+            var areas = document.getElementById("selected");
+            var allAreas = areas.value.split(';');
+            allAreas[allAreas.length - 1] = "" + minX + ":" + maxX + "." + minY + ":" + maxY;
+            
+            areas.value = allAreas.join(';');
+          } else {
+            $(".tb td").removeClass('td_bg');
+            mouse_end={
+              x:$(this).parent().parent().find("tr").index($(this).parent()[0]),  
+              y:$(this).parent().find("td").index($(this)[0])    				
+            };  
+          
+            var maxX = mouse_begin.x<mouse_end.x?mouse_end.x:mouse_begin.x;  
+            var minX = mouse_begin.x<mouse_end.x?mouse_begin.x:mouse_end.x;   
+            var maxY = mouse_begin.y<mouse_end.y?mouse_end.y:mouse_begin.y;   
+            var minY = mouse_begin.y<mouse_end.y?mouse_begin.y:mouse_end.y;   
+            for(var i=minX;i<=maxX;i++){  
+                for(var j=minY;j<=maxY;j++){  
+                    $(".tb tr:eq("+i+") td:eq("+j+")").addClass('td_bg');  
+                }  
+            }  
+            var areas = document.getElementById("selected");
+            areas.value = "" + minX + ":" + maxX + "." + minY + ":" + maxY;
+          }
+      });  
+  }  
+      
+    function mouseUp(){  
+        $(".tb td").mouseup(function(){  
+            $(".tb td").unbind('mouseover');  
+            
+        });  
+    }  
+  }
+
+  let tablnk = '${table_link}';//'https://raw.githubusercontent.com/wenhuchen/Table-Fact-Checking/master/data/all_csv/1-10007452-3.html.csv';
+  $.ajax({
+    url: tablnk,
+    dataType: 'text',
+  }).done(successFunction);
+</script>
+<style>  
+  .tb{  
+      cellspacing:0px;  
+      border-spacing: 0px;  
+      border:1px solid #000;  
+  }  
+  .tb td{  
+      width:100px;  
+      height:50px;  
+      border:1px solid #000;  
+  }  
+  th{  
+      width:100px;  
+      height:50px;  
+      border:1px solid #ddd;  
+      background: #eee;
+  }  
+  .td_bg{  
+      background:#FFAA00;  
+  }  
+</style>  
+

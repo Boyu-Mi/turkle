@@ -1,0 +1,179 @@
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/parsley.js/2.8.1/parsley.js"></script>
+<script>
+$(document).ready(function() {
+  $('#mturk_form').parsley();
+});
+</script>
+<script src="./renderTable.js"></script>
+<div>
+  <h1>${title}</h1>
+  <div id="table"></div>
+  <p>Question:</p>
+  <input name="question" type="text" id="question" required>
+  <p>Answer:</p>
+  <input name="answer" type="text" id="answer" required>
+  <p>Selected areas:</p>
+  <input name="area" id="selected" />
+  <div id="review_input"></div>
+</div>
+<script type="text/javascript">
+  import renderTable from 'renderTable.js';
+  const successFunction = (data) => {
+    document.getElementById("table").innerHTML = renderTable(data);
+    var mouse_begin={x:0, y:0};  
+    var mouse_end={x:0, y:0};  
+    $(function(){  
+        init();  
+        $("body").mousedown(function(e){  
+            if (e.target == document.getElementById("submitButton") || 
+                e.target == document.getElementById("question") ||
+                e.target == document.getElementById("answer") ||
+                e.target == document.getElementById("review")) {
+            } else {
+              document.getElementById("selected").value = "";
+              $(".tb td").removeClass('td_bg'); 
+            }
+        })  
+    })  
+      
+    function add_bg(x, y) {
+      $($($("#table").find("tr")[x + 1]).find("td")[y]).addClass("td_bg");
+    }
+
+    function parse_areas(s) {
+      var areas = s.split(';');
+      for (let area of areas) {
+        console.log(area);
+        var x_range = area.split('.')[0];
+        var y_range = area.split('.')[1];
+        console.log(x_range, y_range);
+        var x_min = parseInt(x_range.split(':')[0]);
+        var x_max = parseInt(x_range.split(':')[1]);
+        var y_min = parseInt(y_range.split(':')[0]);
+        var y_max = parseInt(y_range.split(':')[1]);
+        for (var i = x_min; i <= x_max; i++) {
+          for (var j = y_min; j <= y_max; j++) {
+            add_bg(i, j);
+          }
+        }
+      }
+    }
+
+    function init(){  
+      if (${isUnderReview}) {
+        var input = document.getElementById('selected');
+        input.value = '${area}';
+        parse_areas(input.value);
+        document.getElementById("question").value = '${question}';
+        document.getElementById("answer").value = '${answer}';
+        document.getElementById("review_input").innerHTML = '<p> Review input</p><input name="review" id="review"/>';
+      }
+        mouseDown();  
+        mouseUp();  
+    }  
+      
+    function mouseDown(){  
+        $(".tb td").mousedown(function(e){  
+            e.stopPropagation();
+            mouse_begin={
+              x:$(this).parent().parent().find("tr").index($(this).parent()[0]), 
+              y:$(this).parent().find("td").index($(this)[0])
+            };      
+            if (e.shiftKey == 1) {
+              $(this).addClass('td_bg');  
+              mouseMove();   
+              var areas = document.getElementById("selected");
+              if (areas.value !== "") {
+                areas.value += ";" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
+              } else {
+                areas.value = "" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
+              }
+            } else {
+              $(".tb td").removeClass('td_bg');
+              $(this).addClass('td_bg');  
+              mouseMove();   
+              var areas = document.getElementById("selected");
+              areas.value = "" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
+            }
+          });  
+    }
+        
+    function mouseMove(){  
+        $(".tb td").mouseover(function(e){  
+            if (e.shiftKey == 1) {
+              mouse_end={
+                x:$(this).parent().parent().find("tr").index($(this).parent()[0]), 
+                y:$(this).parent().find("td").index($(this)[0])    					
+              };  
+              var maxX = mouse_begin.x<mouse_end.x?mouse_end.x:mouse_begin.x;   
+              var minX = mouse_begin.x<mouse_end.x?mouse_begin.x:mouse_end.x;   
+              var maxY = mouse_begin.y<mouse_end.y?mouse_end.y:mouse_begin.y;   
+              var minY = mouse_begin.y<mouse_end.y?mouse_begin.y:mouse_end.y;   
+              for(var i=minX;i<=maxX;i++){  
+                  for(var j=minY;j<=maxY;j++){  
+                      $(".tb tr:eq("+i+") td:eq("+j+")").addClass('td_bg');  
+                  }  
+              }
+              var areas = document.getElementById("selected");
+              var allAreas = areas.value.split(';');
+              allAreas[allAreas.length - 1] = "" + minX + ":" + maxX + "." + minY + ":" + maxY;
+              
+              areas.value = allAreas.join(';');
+            } else {
+              $(".tb td").removeClass('td_bg');
+              mouse_end={
+                x:$(this).parent().parent().find("tr").index($(this).parent()[0]),  
+                y:$(this).parent().find("td").index($(this)[0])    				
+              };  
+            
+              var maxX = mouse_begin.x<mouse_end.x?mouse_end.x:mouse_begin.x;  
+              var minX = mouse_begin.x<mouse_end.x?mouse_begin.x:mouse_end.x;   
+              var maxY = mouse_begin.y<mouse_end.y?mouse_end.y:mouse_begin.y;   
+              var minY = mouse_begin.y<mouse_end.y?mouse_begin.y:mouse_end.y;   
+              for(var i=minX;i<=maxX;i++){  
+                  for(var j=minY;j<=maxY;j++){  
+                      $(".tb tr:eq("+i+") td:eq("+j+")").addClass('td_bg');  
+                  }  
+              }  
+              var areas = document.getElementById("selected");
+              areas.value = "" + minX + ":" + maxX + "." + minY + ":" + maxY;
+            }
+        });  
+    }  
+      
+    function mouseUp(){  
+        $(".tb td").mouseup(function(){  
+            $(".tb td").unbind('mouseover');  
+        });  
+    }  
+  }
+
+  let tablnk = '${table_link}';
+  $.ajax({
+    url: tablnk,
+    dataType: 'text',
+  }).done(successFunction); 
+</script>
+<style>  
+  .tb{  
+      cellspacing:0px;  
+      border-spacing: 0px;  
+      border:1px solid #000;  
+  }  
+  .tb td{  
+      width:100px;  
+      height:50px;  
+      border:1px solid #000;  
+  }  
+  th{  
+      width:100px;  
+      height:50px;  
+      border:1px solid #ddd;  
+      background: #eee;
+  }  
+  .td_bg{  
+      background:#FFAA00;  
+  }  
+</style>  
+

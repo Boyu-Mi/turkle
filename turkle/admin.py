@@ -686,9 +686,9 @@ class BatchAdmin(AjaxAutocompleteListFilterModelAdmin):
                    'csrfmiddlewaretoken': request.COOKIES['csrftoken']
                    }
         csv_output = StringIO()
-        batch.to_csv(csv_output)
-        csv = 'review_demo_user.csv'
-        csv_data = process_csv(csv_output.getvalue())
+        batch.to_csv_without_quoting(csv_output)
+        csv = batch.name + '_review.csv'
+        csv_data = csv_output.getvalue()
         files = {'csv_file': (csv, csv_data)}
         headers = dict(headers)
         headers['X-CSRFToken'] = request.COOKIES['csrftoken']
@@ -761,7 +761,6 @@ class BatchAdmin(AjaxAutocompleteListFilterModelAdmin):
 
             # When creating a new batch, set published flag as false until reviewed
             obj.published = False
-
             # Only use CSV file when adding Batch, not when changing
             obj.filename = request.FILES['csv_file']._name
             csv_text = request.FILES['csv_file'].read()

@@ -228,11 +228,16 @@
 
 
 
-<form enctype="multipart/form-data" method="post" id="batch_form" novalidate><input type="hidden" name="csrfmiddlewaretoken" value="WNQ6PovX0lsaoWhsxQ3LDFOMYq4T1HTF8qKHyn3pcQwg8aIcD1ChV6mAM7XY472h">
+<form enctype="multipart/form-data" method="post" id="batch_form" novalidate><input type="hidden" name="csrfmiddlewaretoken" value="4yW27A9Hz55290GK2SXz8yEQpFdrmM3CLdKS4QTUa9iFFv3fm4E7LJckomyXcnld">
 <div>
 
 
 
+
+    <p class="errornote">
+    Please correct the error below.
+    </p>
+    
 
 
 
@@ -241,8 +246,8 @@
     
     
     
-        <div class="form-row field-project">
-            
+        <div class="form-row errors field-project">
+            <ul class="errorlist"><li>Select a valid choice. That choice is not one of the available choices.</li></ul>
             
                 <div>
                     
@@ -275,7 +280,7 @@
                     
                         <label class="required" for="id_name">Batch Name:</label>
                         
-                            <input type="text" name="name" size="60" maxlength="1024" required id="id_name">
+                            <input type="text" name="name" value="mytestbatch" size="60" maxlength="1024" required id="id_name">
                         
                     
                     
@@ -358,7 +363,7 @@
                     
                         <label for="id_allotted_assignment_time">Allotted Assignment Time (hours):</label>
                         
-                            <input type="number" name="allotted_assignment_time" value="24" id="id_allotted_assignment_time">
+                            <input type="number" name="allotted_assignment_time" id="id_allotted_assignment_time">
                         
                     
                     
