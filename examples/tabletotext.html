@@ -43,13 +43,16 @@ $(document).ready(function() {
     return table;
 } 
 </script>
-<div>
+<div style="text-align:center;">
   <h1>${title}</h1>
   <div id="table"></div>
-  <p>Statement:</p>
-  <input name="statement" type="text" id="stat" required>
-  <p>Selected areas:</p>
-  <input name="area" id="selected" />
+  <br><br>
+  <label for="stat">Statement:</label>
+  <input name="statement" type="text" id="stat" class="input" required>
+  <br><br>
+  <label for="selected">Selected areas:</label>
+  <input name="area" id="selected" class="input" />
+  <br><br>
   <div id="review_input"></div>
 </div>
 <script type="text/javascript">

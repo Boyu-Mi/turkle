@@ -43,11 +43,13 @@ $(document).ready(function() {
     return table;
 } 
 </script>
-<div>
+<div style="text-align:center;">
   <h1>${title}</h1>
   <div id="table"></div>
-  <p>Statement:</p>
-  <input name="statement" type="text" id="stat" required>
+  <br><br>
+  <label for="stat">Statement:</label>
+  <input name="statement" type="text" id="stat" class="input" required>
+  <br><br>
   <input
         type="radio"
         id="contactChoice1"
@@ -55,15 +57,14 @@ $(document).ready(function() {
         value="True"
         checked />
   <label for="contactChoice1">True</label>
-
   <input type="radio" id="contactChoice2" name="contact" value="False" />
   <label for="contactChoice2">False</label>
-
   <input type="radio" id="contactChoice3" name="contact" value="Unknown" />
   <label for="contactChoice3">Unknown</label>
-
-  <p>Selected areas:</p>
-  <input name="area" id="selected" />
+  <br><br>
+  <label for="selected">Selected areas:</label>
+  <input name="area" id="selected" class="input" />
+  <br><br>
   <div id="review_input"></div>
 </div>
 <script type="text/javascript">
