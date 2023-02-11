@@ -5,7 +5,44 @@ $(document).ready(function() {
   $('#mturk_form').parsley();
 });
 </script>
-<script src="./renderTable.js"></script>
+<script>
+  const renderTable = (data) => {
+    data = data.trim();
+    var allRows = data.split(/\r?\n|\r/);
+    allRows = allRows.slice(0, -1);
+    var table = '<table cellspacing="0" onselectstart="return false;">';
+    for (var singleRow = 0; singleRow < allRows.length; singleRow++) {
+      if (singleRow === 0) {
+        table += '<thead>';
+        table += '<tr>';
+      } else {
+        table += '<tr>';
+      }
+      var rowCells = allRows[singleRow].split('#');
+      for (var rowCell = 0; rowCell < rowCells.length; rowCell++) {
+        if (singleRow === 0) {
+          table += '<th>';
+          table += rowCells[rowCell];
+          table += '</th>';
+        } else {
+          table += '<td>';
+          table += rowCells[rowCell];
+          table += '</td>';
+        }
+      }
+      if (singleRow === 0) {
+        table += '</tr>';
+        table += '</thead>';
+        table += '<tbody id="tb" class="tb">';
+      } else {
+        table += '</tr>';
+      }
+    } 
+    table += '</tbody>';
+    table += '</table>';
+    return table;
+} 
+</script>
 <div>
   <h1>${title}</h1>
   <div id="table"></div>
@@ -18,7 +55,6 @@ $(document).ready(function() {
   <div id="review_input"></div>
 </div>
 <script type="text/javascript">
-  import renderTable from 'renderTable.js';
   const successFunction = (data) => {
     document.getElementById("table").innerHTML = renderTable(data);
     var mouse_begin={x:0, y:0};  
