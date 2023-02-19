@@ -572,7 +572,6 @@ class Batch(TaskAssignmentStatistics, models.Model):
         for row in rows:
             writer.writerow(row)
 
-
     def to_csv_without_quoting(self, csv_fh, lineterminator='\r\n'):
         fieldnames, rows = self._results_data(self.task_set.all())
         res_dict = {}
@@ -582,6 +581,8 @@ class Batch(TaskAssignmentStatistics, models.Model):
             elif fieldname.startswith('Input') or fieldname.startswith('Answer'):
                 index = fieldname[fieldname.index('.') + 1:]
                 res_dict[index] = [process_quote(row[fieldname]) for row in rows]
+            elif fieldname == 'Turkle.Username':
+                res_dict['Annotator'] = [process_quote(row[fieldname]) for row in rows]
         pd.DataFrame(res_dict).to_csv(csv_fh, index=False, quoting=csv.QUOTE_ALL)
         return None
 

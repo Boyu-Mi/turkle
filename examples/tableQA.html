@@ -1,48 +1,13 @@
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/parsley.js/2.8.1/parsley.js"></script>
+<script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
+
 <script>
-$(document).ready(function() {
-  $('#mturk_form').parsley();
-});
+  $(document).ready(function() {
+    $('#mturk_form').parsley();
+  });
 </script>
-<script>
-  const renderTable = (data) => {
-    data = data.trim();
-    var allRows = data.split(/\r?\n|\r/);
-    allRows = allRows.slice(0, -1);
-    var table = '<table cellspacing="0" align="center" onselectstart="return false;">';
-    for (var singleRow = 0; singleRow < allRows.length; singleRow++) {
-      if (singleRow === 0) {
-        table += '<thead>';
-        table += '<tr>';
-      } else {
-        table += '<tr>';
-      }
-      var rowCells = allRows[singleRow].split('#');
-      for (var rowCell = 0; rowCell < rowCells.length; rowCell++) {
-        if (singleRow === 0) {
-          table += '<th>';
-          table += rowCells[rowCell];
-          table += '</th>';
-        } else {
-          table += '<td>';
-          table += rowCells[rowCell];
-          table += '</td>';
-        }
-      }
-      if (singleRow === 0) {
-        table += '</tr>';
-        table += '</thead>';
-        table += '<tbody id="tb" class="tb">';
-      } else {
-        table += '</tr>';
-      }
-    } 
-    table += '</tbody>';
-    table += '</table>';
-    return table;
-} 
-</script>
+
 <div style="text-align:center;">
   <h1>${title}</h1>
   <div id="table"></div>
@@ -54,21 +19,199 @@ $(document).ready(function() {
   <input name="answer" type="text" id="answer" class="input" required>
   <br><br>
   <label for="selected">Selected areas:</label>
-  <input name="area" id="selected" class="input" />
+  <input name="areas" id="selected" class="input" />
   <br><br>
   <div id="review_input"></div>
+  <input type="submit" id="submitButton" value="Submit" />
 </div>
-<script type="text/javascript">
+
+
+<script>
+  const renderTable = (data, delimiter = ',') => {
+    // replace '\"' in data with "%QUOTESIGN%"
+    data = data.trim().replace(/\\\"/g, "%QOUTESIGN%");
+    let rows = Papa.parse(data, {
+      header: false,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+      delimiter: delimiter,
+      newline: '\n',
+      quoteChar: '"', 
+    }).data;
+    var table = '<table cellspacing="0" align="center" onselectstart="return false;">';
+    for (var i = 0; i < rows.length; i++) {
+      if (i === 0) {
+        table += '<thead><tr>';
+      } else {
+        table += '<tr>';
+      }
+      var cells = rows[i]
+      for (var j = 0; j < cells.length; j++) {
+        if (cells[j] == null) {
+          cells[j] = "";
+        }
+        table += '<td>' + cells[j].toString().replace(/%QOUTESIGN%/g, '"') + '</td>';
+      }
+      if (i === 0) {
+        table += '</tr></thead><tbody id="tb" class="tb">';
+      } else {
+        table += '</tr>';
+      }
+    } 
+    table += '</tbody></table>';
+    return table;
+} 
+</script>
+
+<script>
+  // reference: https://blog.csdn.net/u014074697/article/details/74739128
+  function mouseDown(){  
+    $(".tb td").mousedown(function(e){  
+        e.stopPropagation();
+        mouse_begin={
+          x:$(this).parent().parent().find("tr").index($(this).parent()[0]), 
+          y:$(this).parent().find("td").index($(this)[0])
+        };      
+        if (e.shiftKey == 1) {
+          $(this).addClass('td_bg');  
+          mouseMove();   
+          var areas = document.getElementById("selected");
+          if (areas.value !== "") {
+            areas.value += ";" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
+          } else {
+            areas.value = "" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
+          }
+        } else {
+          $(".tb td").removeClass('td_bg');
+          $(this).addClass('td_bg');  
+          mouseMove();   
+          var areas = document.getElementById("selected");
+          areas.value = "" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
+        }
+      });  
+}
+    
+  function mouseMove(){  
+      $(".tb td").mouseover(function(e){  
+          if (e.shiftKey == 1) {
+            mouse_end = {
+              x:$(this).parent().parent().find("tr").index($(this).parent()[0]), 
+              y:$(this).parent().find("td").index($(this)[0])    					
+            };  
+            // find the max and min of x and y
+            var maxX = mouse_begin.x < mouse_end.x ? mouse_end.x : mouse_begin.x;
+            var minX = mouse_begin.x < mouse_end.x ? mouse_begin.x : mouse_end.x;
+            var maxY = mouse_begin.y < mouse_end.y ? mouse_end.y : mouse_begin.y;
+            var minY = mouse_begin.y < mouse_end.y ? mouse_begin.y : mouse_end.y;
+            for(var i = minX; i <= maxX; i++){  
+                for(var j = minY; j <= maxY; j++){  
+                    add_bg(i, j);
+                }  
+            }
+            var areas = document.getElementById("selected");
+            var allAreas = areas.value.split(';');
+            allAreas[allAreas.length - 1] = "" + minX + ":" + maxX + "." + minY + ":" + maxY;
+            areas.value = allAreas.join(';');
+          } else {
+            $(".tb td").removeClass('td_bg');
+            mouse_end = {
+              x:$(this).parent().parent().find("tr").index($(this).parent()[0]),  
+              y:$(this).parent().find("td").index($(this)[0])    				
+            };  
+          
+            var maxX = mouse_begin.x < mouse_end.x ? mouse_end.x : mouse_begin.x;
+            var minX = mouse_begin.x < mouse_end.x ? mouse_begin.x : mouse_end.x;
+            var maxY = mouse_begin.y < mouse_end.y ? mouse_end.y : mouse_begin.y;
+            var minY = mouse_begin.y < mouse_end.y ? mouse_begin.y : mouse_end.y;
+            for(var i = minX; i <= maxX; i++){  
+                for(var j = minY; j <= maxY; j++){  
+                    add_bg(i, j);
+                }  
+            }
+            var areas = document.getElementById("selected");
+            areas.value = "" + minX + ":" + maxX + "." + minY + ":" + maxY;
+          }
+      });  
+  }  
+    
+  function mouseUp(){  
+      $(".tb td").mouseup(function(){  
+          $(".tb td").unbind('mouseover');  
+      });  
+  }
+</script>
+
+<script>
+  function add_bg(i, j) {
+    $(".tb tr").eq(i).find("td").eq(j).addClass('td_bg');
+  }
+
+  function parse_areas(s) {
+    var areas = s.split(';');
+    for (let area of areas) {
+      console.log(area);
+      var x_range = area.split('.')[0];
+      var y_range = area.split('.')[1];
+      console.log(x_range, y_range);
+      var x_min = parseInt(x_range.split(':')[0]);
+      var x_max = parseInt(x_range.split(':')[1]);
+      var y_min = parseInt(y_range.split(':')[0]);
+      var y_max = parseInt(y_range.split(':')[1]);
+      for (var i = x_min; i <= x_max; i++) {
+        for (var j = y_min; j <= y_max; j++) {
+          add_bg(i, j);
+        }
+      }
+    }
+  }
+
+  function init() {
+    if (${isUnderReview}) {
+      load_reviewer_view();
+    }
+    mouseDown();
+    mouseUp();
+  }
+
+  function load_reviewer_view() {
+    var input = document.getElementById('selected');
+    input.value = '${areas}';
+    parse_areas(input.value);
+    document.getElementById("question").value = '${question}';
+    document.getElementById("answer").value = '${answer}';
+    document.getElementById("review_input").innerHTML = '<p> Review input</p><input name="review" id="review"/>';
+  }
+
+</script>
+<script>
+  function dataLoader() {
+    var url = '${table_link}';
+    console.log('getting data');
+    $.ajax({
+      url: url,
+      type: 'GET',
+      dataType: 'text',
+      success: successFunction,
+      error: function() {
+        console.log('error');
+      }
+    });
+  }
+</script>
+
+
+<script>
   const successFunction = (data) => {
     document.getElementById("table").innerHTML = renderTable(data);
-    var mouse_begin={x:0, y:0};  
-    var mouse_end={x:0, y:0};  
+    var mouse_begin = {x: 0, y: 0};  
+    var mouse_end = {x: 0, y: 0};  
     $(function(){  
         init();  
         $("body").mousedown(function(e){  
             if (e.target == document.getElementById("submitButton") || 
                 e.target == document.getElementById("question") ||
                 e.target == document.getElementById("answer") ||
+                e.target == document.getElementById("selected") ||
                 e.target == document.getElementById("review")) {
             } else {
               document.getElementById("selected").value = "";
@@ -76,131 +219,14 @@ $(document).ready(function() {
             }
         })  
     })  
-      
-    function add_bg(x, y) {
-      $($($("#table").find("tr")[x + 1]).find("td")[y]).addClass("td_bg");
-    }
-
-    function parse_areas(s) {
-      var areas = s.split(';');
-      for (let area of areas) {
-        console.log(area);
-        var x_range = area.split('.')[0];
-        var y_range = area.split('.')[1];
-        console.log(x_range, y_range);
-        var x_min = parseInt(x_range.split(':')[0]);
-        var x_max = parseInt(x_range.split(':')[1]);
-        var y_min = parseInt(y_range.split(':')[0]);
-        var y_max = parseInt(y_range.split(':')[1]);
-        for (var i = x_min; i <= x_max; i++) {
-          for (var j = y_min; j <= y_max; j++) {
-            add_bg(i, j);
-          }
-        }
-      }
-    }
-
-    function init(){  
-      if (${isUnderReview}) {
-        var input = document.getElementById('selected');
-        input.value = '${area}';
-        parse_areas(input.value);
-        document.getElementById("question").value = '${question}';
-        document.getElementById("answer").value = '${answer}';
-        document.getElementById("review_input").innerHTML = '<p> Review input</p><input name="review" id="review"/>';
-      }
-        mouseDown();  
-        mouseUp();  
-    }  
-      
-    function mouseDown(){  
-        $(".tb td").mousedown(function(e){  
-            e.stopPropagation();
-            mouse_begin={
-              x:$(this).parent().parent().find("tr").index($(this).parent()[0]), 
-              y:$(this).parent().find("td").index($(this)[0])
-            };      
-            if (e.shiftKey == 1) {
-              $(this).addClass('td_bg');  
-              mouseMove();   
-              var areas = document.getElementById("selected");
-              if (areas.value !== "") {
-                areas.value += ";" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
-              } else {
-                areas.value = "" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
-              }
-            } else {
-              $(".tb td").removeClass('td_bg');
-              $(this).addClass('td_bg');  
-              mouseMove();   
-              var areas = document.getElementById("selected");
-              areas.value = "" + mouse_begin.x+ ":" + mouse_begin.x + "." + mouse_begin.y + ":" + mouse_begin.y;
-            }
-          });  
-    }
-        
-    function mouseMove(){  
-        $(".tb td").mouseover(function(e){  
-            if (e.shiftKey == 1) {
-              mouse_end={
-                x:$(this).parent().parent().find("tr").index($(this).parent()[0]), 
-                y:$(this).parent().find("td").index($(this)[0])    					
-              };  
-              var maxX = mouse_begin.x<mouse_end.x?mouse_end.x:mouse_begin.x;   
-              var minX = mouse_begin.x<mouse_end.x?mouse_begin.x:mouse_end.x;   
-              var maxY = mouse_begin.y<mouse_end.y?mouse_end.y:mouse_begin.y;   
-              var minY = mouse_begin.y<mouse_end.y?mouse_begin.y:mouse_end.y;   
-              for(var i=minX;i<=maxX;i++){  
-                  for(var j=minY;j<=maxY;j++){  
-                      $(".tb tr:eq("+i+") td:eq("+j+")").addClass('td_bg');  
-                  }  
-              }
-              var areas = document.getElementById("selected");
-              var allAreas = areas.value.split(';');
-              allAreas[allAreas.length - 1] = "" + minX + ":" + maxX + "." + minY + ":" + maxY;
-              
-              areas.value = allAreas.join(';');
-            } else {
-              $(".tb td").removeClass('td_bg');
-              mouse_end={
-                x:$(this).parent().parent().find("tr").index($(this).parent()[0]),  
-                y:$(this).parent().find("td").index($(this)[0])    				
-              };  
-            
-              var maxX = mouse_begin.x<mouse_end.x?mouse_end.x:mouse_begin.x;  
-              var minX = mouse_begin.x<mouse_end.x?mouse_begin.x:mouse_end.x;   
-              var maxY = mouse_begin.y<mouse_end.y?mouse_end.y:mouse_begin.y;   
-              var minY = mouse_begin.y<mouse_end.y?mouse_begin.y:mouse_end.y;   
-              for(var i=minX;i<=maxX;i++){  
-                  for(var j=minY;j<=maxY;j++){  
-                      $(".tb tr:eq("+i+") td:eq("+j+")").addClass('td_bg');  
-                  }  
-              }  
-              var areas = document.getElementById("selected");
-              areas.value = "" + minX + ":" + maxX + "." + minY + ":" + maxY;
-            }
-        });  
-    }  
-      
-    function mouseUp(){  
-        $(".tb td").mouseup(function(){  
-            $(".tb td").unbind('mouseover');  
-        });  
-    }  
-  }
-
-  let tablnk = '${table_link}';
-  $.ajax({
-    url: tablnk,
-    dataType: 'text',
-  }).done(successFunction); 
+  } 
+  dataLoader();
 </script>
 <style>  
   .input {
     width: 200px;
   }
   .tb{  
-      cellspacing:0px;  
       border-spacing: 0px;  
       border:1px solid #000;  
   }  
@@ -212,11 +238,14 @@ $(document).ready(function() {
   th{  
       width:100px;  
       height:50px;  
-      border:1px solid #ddd;  
-      background: #eee;
+      border:1px solid #000;  
   }  
+  td{  
+    width:100px;  
+    height:50px;  
+    border:1px solid #000;  
+  } 
   .td_bg{  
       background:#FFAA00;  
   }  
-</style>  
-
+</style>

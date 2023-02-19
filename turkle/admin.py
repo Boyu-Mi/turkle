@@ -683,7 +683,8 @@ class BatchAdmin(AjaxAutocompleteListFilterModelAdmin):
                    'assignments_per_task': batch.assignments_per_task,
                    'active': 1,
                    'login_required': 1,
-                   'csrfmiddlewaretoken': request.COOKIES['csrftoken']
+                   'csrfmiddlewaretoken': request.COOKIES['csrftoken'],
+                   'can_work_on_user': batch
                    }
         csv_output = StringIO()
         batch.to_csv_without_quoting(csv_output)

@@ -159,8 +159,7 @@ class TurkleClient(object):
         if resp.status_code != requests.codes.ok or not resp.json()['results']:
             return None
         return resp.json()['results'][0]['id']
-#GET /admin/autocomplete/?term=Review+Test&app_label=turkle&model_name=batch&field_name=project HTTP/1.1" 200 81
-#GET /admin/autocomplete/?term=Review+Test&app_label=turkle&model_name=batch&field_name=project HTTP/1.1" 302 0
+
     def review_batch(self, session, url):
         url = url.replace('review', 'publish')
         payload = {
