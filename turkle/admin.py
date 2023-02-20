@@ -960,6 +960,8 @@ class ProjectAdmin(GuardedModelAdmin, AjaxAutocompleteListFilterModelAdmin):
                  name='turkle_project_activity_json'),
             path('<int:project_id>/stats/',
                  self.admin_site.admin_view(self.project_stats), name='turkle_project_stats'),
+            path('<int:project_id>/export/',
+                 self.admin_site.admin_view(self.export_results_implement), name='turkle_export_results'),
             # backward compatibility for active-projects and active-users.
             path('active-projects/',
                  lambda x: redirect(reverse('admin:turkle_activeproject_changelist'))),
@@ -1021,7 +1023,7 @@ class ProjectAdmin(GuardedModelAdmin, AjaxAutocompleteListFilterModelAdmin):
 
     def get_list_display(self, request):
         if request.user.has_perm('turkle.add_batch'):
-            return ('name', 'filename', 'updated_at', 'active', 'stats', 'publish_tasks')
+            return ('name', 'filename', 'updated_at', 'active', 'stats', 'publish_tasks', 'export_results')
         else:
             return ('name', 'filename', 'updated_at', 'active', 'stats')
 
@@ -1182,6 +1184,34 @@ class ProjectAdmin(GuardedModelAdmin, AjaxAutocompleteListFilterModelAdmin):
                            format(publish_tasks_url))
     publish_tasks.short_description = 'Publish Tasks'
 
+    def export_results_implement(self, request, project_id):
+        try:
+            project = Project.objects.get(id=project_id)
+        except ObjectDoesNotExist:
+            messages.error(request, 'Cannot find Project with ID {}'.format(project_id))
+            return redirect(reverse('admin:turkle_project_changelist'))
+        res_rows = []
+        fieldnames = None
+        csv_fh = StringIO()
+        for batch in project.batch_set.order_by('name'):
+            if not batch.name.endswith('_review'):
+                continue
+            fieldnames, rows = batch._results_data(batch.task_set.all())
+            res_rows += rows
+        if fieldnames is None:
+            messages.error(request, 'Cannot find reviewed Batch')
+            return redirect(reverse('admin:turkle_project_changelist'))
+
+        writer = csv.DictWriter(csv_fh, fieldnames, lineterminator='\r\n',
+                                quoting=csv.QUOTE_ALL)
+        writer.writeheader()
+        for row in res_rows:
+            writer.writerow(row)
+        response = HttpResponse(csv_fh.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(
+            project.name + '_final_results.csv')
+        return response
+
     def save_model(self, request, obj, form, change):
         new_flag = obj._state.adding
         if request.user.is_authenticated:
@@ -1229,6 +1259,10 @@ class ProjectAdmin(GuardedModelAdmin, AjaxAutocompleteListFilterModelAdmin):
         return format_html('<a href="{}" class="button">Stats</a>'.
                            format(stats_url))
 
+    def export_results(self, obj):
+        publish_tasks_url = reverse('admin:turkle_export_results', kwargs={'project_id': obj.id})
+        return format_html('<a href="{}" class="button">Export Results</a>'.
+                           format(publish_tasks_url))
 
 class ViewOnlyAdminMixin:
     def has_add_permission(self, request):
