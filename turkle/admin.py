@@ -7,7 +7,6 @@ from bisect import bisect_left
 from collections import defaultdict
 from datetime import timedelta
 from io import StringIO
-from csv_process import *
 import humanfriendly
 from djaa_list_filter.admin import AjaxAutocompleteListFilterModelAdmin
 from django.contrib import admin, messages

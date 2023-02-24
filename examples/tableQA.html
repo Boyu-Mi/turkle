@@ -1,7 +1,7 @@
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/parsley.js/2.8.1/parsley.js"></script>
 <script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
-
+<script src="https://unpkg.com/@grammarly/editor-sdk@2.3.9?clientId=client_9m1fYK3MPQxwKsib5CxtpB"></script>
 <script>
   $(document).ready(function() {
     $('#mturk_form').parsley();
@@ -13,10 +13,14 @@
   <div id="table"></div>
   <br><br>
   <label for="question">Question:</label>
-  <input name="question" type="text" id="question" class="input" required>
+  <grammarly-editor-plugin>
+      <input name="question" type="text" id="question" class="input" required>
+  </grammarly-editor-plugin>
   <br><br>
   <label for="answer">Answer:</label>
-  <input name="answer" type="text" id="answer" class="input" required>
+  <grammarly-editor-plugin>
+      <input name="answer" type="text" id="answer" class="input" required>
+  </grammarly-editor-plugin>
   <br><br>
   <label for="selected">Selected areas:</label>
   <input name="areas" id="selected" class="input" />
@@ -179,7 +183,7 @@
     parse_areas(input.value);
     document.getElementById("question").value = '${question}';
     document.getElementById("answer").value = '${answer}';
-    document.getElementById("review_input").innerHTML = '<p> Review input</p><input name="review" id="review"/>';
+    document.getElementById("review_input").innerHTML = '<label for="review">Review input: </label><input name="review" id="review" class="input" />';
   }
 
 </script>
