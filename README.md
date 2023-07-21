@@ -2,6 +2,7 @@
 
 Tool for annotation tasks based on turkle. Users can use given example HTML templates or Users can write their own HTML templates, then create a batch via csv and assign it to a specified annotator. After the task is completed, annotators' annotations can be reviewed and modified through the review function, and the final annotation results can be exported in the format of .csv file.
 
+## 🥺[paper](https://aclanthology.org/2023.acl-demo.32.pdf)
 ### installation
 
 Refer to the [installation of turkle](https://turkle.readthedocs.io/en/latest/README.html#installation).
